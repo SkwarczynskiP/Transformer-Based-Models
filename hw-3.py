@@ -2,15 +2,15 @@ from datasets import load_dataset
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
 from transformers import TrainingArguments, Trainer
-import numpy as np
-import evaluate
-import re
-import nltk
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.naive_bayes import MultinomialNB
 import random
+import numpy as np
+import evaluate
+import re
+import nltk
 
 
 def tokenize_bert(text):
@@ -54,7 +54,13 @@ def preprocess(text):  # Function used in previous assignments
 dataset = load_dataset("sms_spam", trust_remote_code=True)
 
 
-# # 2.2 Fine-tuning Pre-trained Models
+# 2.2 Fine-tuning Pre-trained Models
+# Referenced https://huggingface.co/docs/transformers/training for implementation of fine-tuning the models
+# Also referenced Microsoft Copilot & numerous other HuggingFace documentation for help troubleshooting the code not
+#   automatically executing on my laptop's GPU:
+#   - https://discuss.huggingface.co/t/not-using-gpu-although-it-is-specified/14746
+#   - https://discuss.huggingface.co/t/use-gpu-on-pc-to-load-the-models/604
+
 # Model 1: prajjwal1/bert-tiny
 print("\n\nModel 1: prajjwal1/bert-tiny")
 tokenizerBert = AutoTokenizer.from_pretrained("prajjwal1/bert-tiny")
@@ -92,7 +98,7 @@ modelRoberta = AutoModelForSequenceClassification.from_pretrained("distilroberta
 RobertaTraining_args = TrainingArguments(output_dir="test_trainer")
 metric = evaluate.load("accuracy")
 
-# Creation of T5 Trainer Object
+# Creation of the distilroberta Trainer Object
 trainerRoberta = Trainer(
     model=modelRoberta,
     args=RobertaTraining_args,
@@ -111,23 +117,25 @@ print(evalMetricsRoberta)
 
 
 # 2.3 Zero-Shot Classification
-# This is done on the Google Collab Notebook
+# Code for Zero-Shot Classification is found in the Zero-Shot Classification.ipynb file
+# Referenced Microsoft Copilot for the code implementation, as many models were having trouble with the particular
+#   dataset.
 
 
 # 2.4 Baselines
-# Preprocessing the Train Portion of the Dataset
+# Preprocessing the Training Portion of the Dataset
 textTrain = dataset['train']['sms'][0:4456]
 labelsTrain = dataset['train']['label'][0:4456]
-procesedSentencesTrain = []
+processedSentencesTrain = []
 
 for text in textTrain:
     processedTextTrain = preprocess(text)
-    procesedSentencesTrain.append(processedTextTrain)
+    processedSentencesTrain.append(processedTextTrain)
 
 # Creating the Bag of Words Model For the Train Portion of the Dataset (Code taken from previous assignments)
 vocab = set()
 bowTrain = []
-for text in procesedSentencesTrain:
+for text in processedSentencesTrain:
     wordCounts = {}
     tokens = nltk.word_tokenize(text)
     vocab.update(tokens)
@@ -166,6 +174,7 @@ for text in processedSentencesTest:
     bowTest.append(wordCounts)
 
 # Converting Both BOW Models into a Matrix - For Multinomial Naive Bayes BOW Baseline Calculation
+# Referenced https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html for implementation
 dictVectorizer = DictVectorizer()
 bowTrainMatrix = dictVectorizer.fit_transform(bowTrain)
 bowTestMatrix = dictVectorizer.transform(bowTest)
